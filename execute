@@ -1,0 +1,261 @@
+#include <OneButton.h>
+#include <Grove_Motor_Driver_TB6612FNG.h>
+#include <I2Cdev.h>
+
+//moteur B = droite
+//moteur A = gauche
+
+//Déclarations
+
+int pincaptgauche=2;
+int pincaptdroit=3;
+int pincaptmilieu=4;
+
+int pinledgauche=5;
+int pinleddroit=6;
+
+int pinmotgauche = 10;
+int vitessegauche=0;
+
+int pinmotdroit = 9;
+int vitessedroit= 0;
+
+int vbasse = 80;
+int vmoy = -100;
+int vhaute = -150;
+
+const byte pinbouton = 7;
+
+boolean etatcaptgauche=true;
+boolean etatcaptdroit=true;
+boolean etatcaptmilieu=true;
+
+boolean etatbouton=true;
+
+MotorDriver motor;
+
+int nbTours;
+int etatrobot = 0;
+OneButton button1(pinbouton, false);
+
+void setup()
+{
+  pinMode(pinledgauche, OUTPUT);
+  pinMode(pincaptgauche, INPUT);
+  
+  pinMode(pinleddroit, OUTPUT);
+  pinMode(pincaptdroit, INPUT);
+  
+  pinMode(pinleddroit, OUTPUT);
+  pinMode(pincaptmilieu, INPUT);
+  
+  pinMode(pinledgauche, OUTPUT);
+  pinMode(pincaptmilieu, INPUT);
+  
+  pinMode(pinbouton, INPUT);
+
+  button1.attachClick(etat1);
+  button1.attachDoubleClick(etat2);
+  
+Wire.begin();
+Serial.begin(9600);
+motor.init();
+tempolumiere();
+
+}
+
+void loop()
+{
+
+  nbTours = 0;
+
+  button1.tick();
+  if (etatrobot == 1)
+  {
+    routine1();
+  }
+  else if (etatrobot == 2)
+  {
+    if(nbTours !=3 ){
+   while(true){
+    capteurlumiere();
+    routine2();
+  }
+    }
+  }
+}
+void etat1()
+{
+  etatrobot = 1;
+}
+void etat2()
+{
+  etatrobot = 2;
+}
+
+
+void routine1()
+{
+ button1.tick();
+ digitalWrite(pinleddroit, HIGH);
+ digitalWrite(pinledgauche, HIGH);
+ delay(500);
+ digitalWrite(pinleddroit, LOW);
+ digitalWrite(pinledgauche, LOW);
+ avancer();
+ delay(500);
+ droite();
+ delay(500);
+ gauche();
+ delay(500);
+}
+ 
+void capteurlumiere()
+{
+  etatcaptgauche=digitalRead(pincaptgauche);
+  digitalWrite(pinledgauche, etatcaptgauche);
+ 
+  etatcaptdroit=digitalRead(pincaptdroit);
+  digitalWrite(pinleddroit, etatcaptdroit);
+  
+  etatcaptmilieu=digitalRead(pincaptmilieu);
+  digitalWrite(pinleddroit, etatcaptmilieu);
+  
+  etatcaptmilieu=digitalRead(pincaptmilieu);
+  digitalWrite(pinledgauche, etatcaptmilieu);
+}
+
+void tempolumiere()
+{
+  digitalWrite(pinleddroit, HIGH);
+  digitalWrite(pinledgauche, HIGH);
+  delay(500);
+  digitalWrite(pinleddroit, LOW);
+  digitalWrite(pinledgauche, LOW);
+  
+}
+
+void avancer() //Pour avancer
+{  
+  motor.dcMotorRun(MOTOR_CHA,vhaute);
+  motor.dcMotorRun(MOTOR_CHB,vhaute);
+}
+
+void gauche() //Pour tourner à gauche
+{
+  motor.dcMotorRun(MOTOR_CHA,vbasse); //tourne gauche
+  motor.dcMotorRun(MOTOR_CHB,vhaute);
+}
+void gauche2() //Pour tourner à gauche
+{
+  motor.dcMotorRun(MOTOR_CHA,vbasse); //tourne gauche
+  motor.dcMotorRun(MOTOR_CHB,vmoy);
+}
+void droite() //Pour tourner à droite
+{
+  motor.dcMotorRun(MOTOR_CHA,vhaute); //tourne droite
+  motor.dcMotorRun(MOTOR_CHB,vbasse);
+}
+void droite2() //Pour tourner à droite
+{
+  motor.dcMotorRun(MOTOR_CHA,vmoy); //tourne droite
+  motor.dcMotorRun(MOTOR_CHB,vbasse);
+}
+void arreter() //Pour arreter
+{
+  motor.dcMotorBrake(MOTOR_CHA);
+  motor.dcMotorBrake(MOTOR_CHB);
+}
+void reculer() //Pour reculer
+{  
+  motor.dcMotorRun(MOTOR_CHA,-vmoy);
+  motor.dcMotorRun(MOTOR_CHB,-vmoy);
+}
+
+void sos(){
+  int x;
+  for(x = 0; x < 3; x++){
+    digitalWrite(pinleddroit, HIGH);
+    digitalWrite(pinledgauche, HIGH);
+    delay(250);
+    digitalWrite(pinleddroit, LOW);
+    digitalWrite(pinledgauche, LOW);
+    delay(100);
+  }
+  for(x = 0; x < 3; x++){
+    digitalWrite(pinleddroit, HIGH);
+    digitalWrite(pinledgauche, HIGH);
+    delay(500);
+    digitalWrite(pinleddroit, LOW);
+    digitalWrite(pinledgauche, LOW);
+    delay(100);
+  }
+  for(x = 0; x < 3; x++){
+    digitalWrite(pinleddroit, HIGH);
+    digitalWrite(pinledgauche, HIGH);
+    delay(250);
+    digitalWrite(pinleddroit, LOW);
+    digitalWrite(pinledgauche, LOW);
+    delay(100);
+  }
+}
+
+void routine2()
+{
+  button1.tick();
+  etatcaptgauche = digitalRead(pincaptgauche);
+  etatcaptmilieu = digitalRead(pincaptmilieu);
+  etatcaptdroit = digitalRead(pincaptdroit);
+
+  if(etatcaptgauche && etatcaptmilieu && etatcaptdroit){
+    if(nbTours != 3){
+      nbTours++;
+      avancer();
+      delay(500);
+    }
+    else{
+      arreter();
+      delay(999)
+    }
+  }
+    else if (!etatcaptgauche && etatcaptmilieu && !etatcaptdroit)
+    {
+      avancer();
+    }
+    else if (!etatcaptgauche && !etatcaptmilieu && !etatcaptdroit)
+    {
+      avancer();
+    }
+    else if (etatcaptgauche && etatcaptmilieu && !etatcaptdroit)
+    {
+      gauche();
+    }
+    else if (etatcaptgauche && !etatcaptmilieu && !etatcaptdroit)
+    {
+      gauche2();
+    }
+    else if (!etatcaptgauche && !etatcaptmilieu & etatcaptdroit)
+    {
+      droite();
+    }
+    else if (!etatcaptgauche && etatcaptmilieu && etatcaptdroit)
+    {
+      droite2();
+    }
+
+
+  /*
+  else { //Situation d'absence de ligne //mode 5
+    unsigned long debut;
+    unsigned long fin;
+    debut = millis(); //millis fonction qui donne le temps en millisecondes
+    while(!etatcaptgauche && !etatcaptmilieu && !etatcaptdroit){
+      gauche();
+      fin = millis(); 
+      if((fin-debut) >= 20000){ // 20000 ms = 20 s
+        arreter();
+
+        while(true){
+          sos();
+  */
+}
